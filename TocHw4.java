@@ -5,17 +5,43 @@ import java.util.regex.Pattern;
 import java.io.*;
 import org.json.*;
 
+class MyClass
+{
+	String Address;
+	int MAXPrice;
+	int MINPrice;
+	int Counter;
+	boolean[] DateMonth = new boolean[13];
+	boolean[] DateYear = new boolean[110];
+	
+	public MyClass(int I, int MyDate, String MyAddress, int Price)
+	{
+		Counter = 1;
+		MAXPrice = Price;
+		MINPrice = Price;
+		Address = MyAddress;
+		for (int i = 0; i < 110; i++)
+		{
+			for(int j = 1;j<=12; j++)
+			{
+				DateYear[i] = false;
+				DateMonth[j] = false;
+			}
+		}
+		DateYear[MyDate/100] = true;
+		DateMonth[MyDate%100] = true;
+	}
+	
+}
+
 public class TocHw4 {
-	static boolean FirstComparison = true;
 	public static void main(String[] args) {
-		String ProvidedURL = "http://www.datagarage.io/api/538447a07122e8a77dfe2d86";
-		System.out.println("Entering URL...");
+		String ProvidedURL = args[0];
+		//System.out.println("Entering URL...");
 		String MyString = GetJsonFile(ProvidedURL);
-		System.out.println("Finished Saving Json File.");
-		System.out.println(MyString);
-		
+		//System.out.println("Finished Saving Json File.");
+		//System.out.println(MyString);
 		int Total = 0;
-		
 		try {
 			List<MyClass> MyList = new ArrayList<MyClass>();
 			HashMap<String, MyClass> MyHashMap = new HashMap<String, MyClass>();
@@ -24,13 +50,10 @@ public class TocHw4 {
 			JSONObject MyJsonObject;
 			
 			String Address = null;
-			int Characters = 0;
 			
 			for (int i = 0; i < MyJsonArray.length();i++)
 			{
 				MyJsonObject = MyJsonArray.getJSONObject(i);
-				//MyClass TempClass
-				
 				
 				//Address = MyJsonObject.getString("土地區段位置或建物區門牌");
 				if (MyJsonObject.getString("土地區段位置或建物區門牌").contains("路"))
@@ -41,6 +64,7 @@ public class TocHw4 {
 					if (MyMatcher.find())
 					{
 						Address = MyMatcher.group(0);
+						
 					}
 				}
 				else if (MyJsonObject.getString("土地區段位置或建物區門牌").contains("街"))
@@ -90,38 +114,55 @@ public class TocHw4 {
 				MyClass TempClass = MyHashMap.get(Address);
 				if (TempClass == null)
 				{
-					
+					int Date = MyJsonObject.getInt("交易年月");
+					int Price = MyJsonObject.getInt("總價元");
+					MyClass AuxClass = new MyClass(i, Date, Address, Price);
+					MyHashMap.put(Address, AuxClass);
+					//System.out.println(Date+" "+Price);
 				}
 				else
 				{
-					
+					int dateyear = MyJsonObject.getInt("交易年月")/100;
+					int datemonth = MyJsonObject.getInt("交易年月")%100;
+					//System.out.println("Month: "+datemonth+" Year: "+dateyear);
+					if (MyJsonObject.getInt("總價元") > TempClass.MAXPrice)
+					{
+						TempClass.MAXPrice = MyJsonObject.getInt("總價元");
+					}
+					if (MyJsonObject.getInt("總價元") < TempClass.MINPrice)
+					{
+						TempClass.MINPrice = MyJsonObject.getInt("總價元");
+					}
+					if ((TempClass.DateMonth[datemonth] && TempClass.DateYear[dateyear]) == false)
+					{
+						if (TempClass.Counter>Total)
+						{
+							Total = TempClass.Counter;
+							MyList.clear();
+							MyList.add(TempClass);	
+						}
+						else if (TempClass.Counter == Total)
+						{
+							MyList.add(TempClass);	
+						}
+						TempClass.DateMonth[datemonth] = true;
+						TempClass.DateYear[dateyear] = true;
+						TempClass.Counter++;
+					}
 				}
 				
 			}
-			
+			for(MyClass TempList:MyList)
+			{
+				System.out.println(TempList.Address+", 最高成交價: "+TempList.MAXPrice+", 最低成交價: "+TempList.MINPrice);
+			}
+			//System.out.println(Total);
 			
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
-		
 	}
 	
-	class MyClass
-	{
-		String Address;
-		int first;
-		int MAXPrice;
-		int MINPrice;
-		int Counter;
-		public MyClass()
-		{
-			
-		}
-		
-	}
 	static String GetJsonFile(String ProvidedURL)
 	{
 		String ReadLine;
